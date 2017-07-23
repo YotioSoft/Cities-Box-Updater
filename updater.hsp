@@ -19,6 +19,12 @@
 	
 	return
 	
+#defcfunc get_chapter var underlying_var, str search_chapter, str punctuate, str end_word
+	value = instr(underlying_var, 0, search_chapter)
+	get_chapter_buf = strmid ( underlying_var, value + strlen(""+search_chapter+""+punctuate+""), instr(underlying_var, value + strlen(""+search_chapter+""+punctuate+""), end_word) )
+	
+	return get_chapter_buf
+	
 #global
 
 *main
@@ -50,6 +56,10 @@
 		end
 	}
 	
+	notesel latest_version
+	noteload "data/latest_version.txt"
+	latest_version__URL = get_chapter(latest_version, "URL", " : ", ";")
+	
 	notesel NOW_file_list
 	noteload "data/file_list.dat"
 	NOW_file_list_max = notemax
@@ -73,7 +83,7 @@
 				delete NEW_file_list_name
 			}
 			
-			download "https://github.com/YotioSoft/Cities-Box/blob/master/", NEW_file_list_name, NEW_file_list_name
+			download latest_version__URL, NEW_file_list_name, NEW_file_list_name
 		}
 	
 		if int(NEW_file_list_version) = -1 {
