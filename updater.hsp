@@ -1,0 +1,90 @@
+#include "hspinet.as"
+
+#module
+#deffunc download str url, str request, str dlname
+	netinit@
+	neturl@ url
+	
+	netdlname@ dlname					;	ダウンロード後のファイル名
+	netrequest@ request					;	ファイル名の指定（ここで指定する）
+	
+	repeat
+		exist dlname
+		netexec@ res
+		if res : break
+		await 50
+	loop
+
+	netterm@
+	
+	return
+	
+#global
+
+*main
+	screen 0, 400, 50
+	color 128, 128, 128 : boxf
+	title "Cities Box Updater"
+	
+	color 255, 255, 255 : pos 10, 10 : mes "ファイル一覧リストをダウンロード中..."
+	
+	notesel datacenter_url
+	noteload "data/datacenter_url.txt"
+	
+	;delete "data/datacenter_url.txt"
+	
+	notesel about
+	noteload "data/about.txt"
+	noteget tmp_about, 2
+	split tmp_about, " : ", tmp, NOW_Release_number
+	NOW_Release_number = int(NOW_Release_number)
+
+	download datacenter_url, "update.txt", "data/update.txt"
+	
+	notesel NEW_file_list
+	noteload "data/update.txt"
+	NEW_file_list_max = notemax
+	
+	if instr(NEW_file_list, 0, "<!DOCTYPE html>") != -1 {
+		dialog "アップデートに失敗しました"
+		end
+	}
+	
+	notesel NOW_file_list
+	noteload "data/file_list.dat"
+	NOW_file_list_max = notemax
+	
+	repeat NEW_file_list_max
+		notesel NEW_file_list
+		noteget tmp_NEW_file_list, cnt
+	
+		notesel NOW_file_list
+		noteget tmp_NOW_file_list, cnt
+	
+		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version
+		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
+		
+		if int(NEW_file_list_version) > int(NOW_Release_number) {
+			color 128, 128, 128 : boxf
+			color 255, 255, 255 : pos 10, 10 : mes "ダウンロード中 : "+NEW_file_list_name+""
+	
+			exist NEW_file_list_name
+			if strsize != -1 {
+				delete NEW_file_list_name
+			}
+			
+			download "https://github.com/YotioSoft/Cities-Box/blob/master/", NEW_file_list_name, NEW_file_list_name
+		}
+	
+		if int(NEW_file_list_version) = -1 {
+			color 255, 255, 255 : boxf
+			color 0, 0, 0 : pos 10, 10 : mes "削除中 : "+NEW_file_list_name+""
+			delete NEW_file_list_name
+		}
+	
+		wait 1
+	loop
+	
+	
+	
+	end
