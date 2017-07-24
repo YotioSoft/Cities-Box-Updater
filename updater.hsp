@@ -98,6 +98,17 @@
 			}
 			
 			download latest_version__URL, NEW_file_list_name, NEW_file_list_name
+	
+			//•¶š‰»‚¯‰ğÁ
+			if instr(NEW_file_list_name, 0, ".hsp") != -1 or instr(NEW_file_list_name, 0, ".txt") != -1 or instr(NEW_file_list_name, 0, ".adat") != -1 {
+				notesel dl_tmp
+				noteload NEW_file_list_name
+	
+				nkfcnv new_dl_tmp, dl_tmp, "s", strlen(dl_tmp), strlen(dl_tmp) + 1024
+	
+				notesel new_dl_tmp
+				notesave NEW_file_list_name
+			}
 		}
 	
 		if int(NEW_file_list_version) = -1 {
