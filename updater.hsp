@@ -67,6 +67,9 @@
 	
 	notesel latest_version
 	noteload "data/latest_version.txt"
+	latest_version__Release_Number = get_chapter(latest_version, "Release Number", " : ", ";")
+	latest_version__Title = get_chapter(latest_version, "Title", " : ", ";")
+	latest_version__Version = get_chapter(latest_version, "Version", " : ", ";")
 	latest_version__URL = get_chapter(latest_version, "URL", " : ", ";")
 	
 	notesel NOW_file_list
@@ -114,8 +117,47 @@
 	
 	color 50, 50, 50 : boxf
 	pos 5, 5 : gcopy 1, 0, 0, 50, 50
-	color 0, 162, 232 : pos 60, 10 : mes "アップデートが完了しました。"
 	
-	wait 300
+	color 163, 73, 164 : pos 60, 10 : mes "バージョン情報更新中..."
+	
+	notesel about
+	noteload "data/about.txt"
+	
+	repeat notemax
+		noteget about_tmp, cnt
+		
+		if instr(about_tmp, 0, "Release_number : ") != -1 {
+			noteadd "Release_number : "+latest_version__Release_Number+"", cnt, 1
+		}
+		if instr(about_tmp, 0, "Title : ") != -1 {
+			noteadd "Title : "+latest_version__Title+"", cnt, 1
+		}
+	
+		if instr(about_tmp, 0, "Version : ") != -1 {
+			noteadd "Version : "+latest_version__Version+"", cnt, 1
+		}
+	
+		wait 1
+	loop
+	
+	notesel about
+	notesave "data/about.txt"
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+	color 163, 73, 164 : pos 60, 10 : mes "一時ファイル削除中..."
+	
+	delete "data/datacenter_url.txt"
+	delete "data/latest_version.txt"
+	delete "data/update.txt"
+	
+	font "Yu Gothic", 11, 1
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	color 0, 162, 232 : pos 60, 7 : mes "アップデートが完了しました。Cities Boxを再起動してください。\n（再起動するとこのアップデーターは自動で削除されます）"
+	
+	wait 500
 	
 	end
