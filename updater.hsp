@@ -1,5 +1,7 @@
 #include "hspinet.as"
 
+#pack "logo.png"
+
 #module
 #deffunc download str url, str request, str dlname
 	netinit@
@@ -27,12 +29,19 @@
 	
 #global
 
+*buf
+	celload "logo.png", 1
+
 *main
 	screen 0, 400, 50
-	color 128, 128, 128 : boxf
+	color 50, 50, 50 : boxf
 	title "Cities Box Updater"
 	
-	color 255, 255, 255 : pos 10, 10 : mes "ファイル一覧リストをダウンロード中..."
+	font "Yu Gothic", 14, 1
+	
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+	color 255, 127, 39 : pos 60, 10 : mes "ファイル一覧リストをダウンロード中..."
 	
 	notesel datacenter_url
 	noteload "data/datacenter_url.txt"
@@ -75,8 +84,10 @@
 		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
 		
 		if int(NEW_file_list_version) > int(NOW_Release_number) {
-			color 128, 128, 128 : boxf
-			color 255, 255, 255 : pos 10, 10 : mes "ダウンロード中 : "+NEW_file_list_name+""
+			color 50, 50, 50 : boxf
+			color 34, 177, 76 : pos 60, 7 : mes "ダウンロード中 : \n"+NEW_file_list_name+""
+	
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
 	
 			exist NEW_file_list_name
 			if strsize != -1 {
@@ -87,14 +98,24 @@
 		}
 	
 		if int(NEW_file_list_version) = -1 {
-			color 255, 255, 255 : boxf
-			color 0, 0, 0 : pos 10, 10 : mes "削除中 : "+NEW_file_list_name+""
-			delete NEW_file_list_name
+			color 50, 50, 50 : boxf
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
+			
+			color 255, 0, 0 : pos 60, 10 : mes "削除中 : "+NEW_file_list_name+""
+	
+			exist NEW_file_list_name
+			if strsize >= 0 {
+				delete NEW_file_list_name
+			}
 		}
 	
 		wait 1
 	loop
 	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	color 0, 162, 232 : pos 60, 10 : mes "アップデートが完了しました。"
 	
+	wait 300
 	
 	end
