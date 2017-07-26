@@ -37,6 +37,8 @@
 	color 50, 50, 50 : boxf
 	title "Cities Box Updater"
 	
+	now_DIR = dirinfo(0)
+	
 	font "Yu Gothic", 14, 1
 	
 	pos 5, 5 : gcopy 1, 0, 0, 50, 50
@@ -87,6 +89,29 @@
 		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
 		
 		if int(NEW_file_list_version) > int(NOW_Release_number) {
+			//ディレクトリが存在しなければ作成
+				getpath32_NEW_file_list_name = getpath(NEW_file_list_name, 32)
+				split getpath32_NEW_file_list_name, "\\", NEW_file_list_name_DIR
+				split_stat = stat
+					
+				#include "hspext.as"
+	
+				NEW_file_list_name_DIR_tmp = now_DIR
+	
+				repeat split_stat - 1
+					dirlist2 x, NEW_file_list_name_DIR(cnt), 1
+					if stat = 0 {
+						mkdir ""+NEW_file_list_name_DIR_tmp+"\\"+NEW_file_list_name_DIR(cnt)+"\\"
+					}
+						
+					NEW_file_list_name_DIR_tmp += "\\"+NEW_file_list_name_DIR(cnt)+"\\"
+					chdir NEW_file_list_name_DIR_tmp
+
+					wait 10
+				loop
+	
+			chdir now_DIR
+			
 			color 50, 50, 50 : boxf
 			color 34, 177, 76 : pos 60, 7 : mes "ダウンロード中 : \n"+NEW_file_list_name+""
 	
@@ -159,9 +184,12 @@
 	
 	color 163, 73, 164 : pos 60, 10 : mes "一時ファイル削除中..."
 	
-	delete "data/datacenter_url.txt"
-	delete "data/latest_version.txt"
-	delete "data/update.txt"
+	exist "data/datacenter_url.txt"
+		if strsize >= 0 : delete "data/datacenter_url.txt"
+	exist "data/latest_version.txt"
+		if strsize >= 0 : delete "data/latest_version.txt"
+	exist "data/update.txt"
+		if strsize >= 0 : delete "data/update.txt"
 	
 	font "Yu Gothic", 11, 1
 	
