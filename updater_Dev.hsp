@@ -122,7 +122,7 @@
 				delete NEW_file_list_name
 			}
 			
-			download Dev_latest_version__URL, NEW_file_list_name, NEW_file_list_name
+			download latest_version__URL, NEW_file_list_name, NEW_file_list_name
 	
 			//•¶š‰»‚¯‰ğÁ
 			if instr(NEW_file_list_name, 0, ".hsp") != -1 or instr(NEW_file_list_name, 0, ".txt") != -1 or instr(NEW_file_list_name, 0, ".adat") != -1 {
@@ -163,14 +163,14 @@
 		noteget about_tmp, cnt
 		
 		if instr(about_tmp, 0, "Release_number : ") != -1 {
-			noteadd "Release_number : "+latest_version__Release_Number+"", cnt, 1
+			noteadd "Release_number : "+Dev_latest_version__Release_Number+"", cnt, 1
 		}
 		if instr(about_tmp, 0, "Title : ") != -1 {
-			noteadd "Title : "+latest_version__Title+"", cnt, 1
+			noteadd "Title : "+Dev_latest_version__Title+"", cnt, 1
 		}
 	
 		if instr(about_tmp, 0, "Version : ") != -1 {
-			noteadd "Version : "+latest_version__Version+"", cnt, 1
+			noteadd "Version : "+Dev_latest_version__Version+"", cnt, 1
 		}
 	
 		wait 1
