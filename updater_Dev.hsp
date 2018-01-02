@@ -122,7 +122,7 @@
 				delete NEW_file_list_name
 			}
 			
-			download latest_version__URL, NEW_file_list_name, NEW_file_list_name
+			download Dev_latest_version__URL, NEW_file_list_name, NEW_file_list_name
 	
 			//•¶š‰»‚¯‰ğÁ
 			if instr(NEW_file_list_name, 0, ".hsp") != -1 or instr(NEW_file_list_name, 0, ".txt") != -1 or instr(NEW_file_list_name, 0, ".adat") != -1 {
