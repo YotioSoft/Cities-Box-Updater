@@ -1,0 +1,202 @@
+#include "hspinet.as"
+
+#pack "logo.png"
+
+#module
+#deffunc download str url, str request, str dlname
+	netinit@
+	neturl@ url
+	
+	netdlname@ dlname					;	ダウンロード後のファイル名
+	netrequest@ request					;	ファイル名の指定（ここで指定する）
+	
+	repeat
+		exist dlname
+		netexec@ res
+		if res : break
+		await 50
+	loop
+
+	netterm@
+	
+	return
+	
+#defcfunc get_chapter var underlying_var, str search_chapter, str punctuate, str end_word
+	value = instr(underlying_var, 0, search_chapter)
+	get_chapter_buf = strmid ( underlying_var, value + strlen(""+search_chapter+""+punctuate+""), instr(underlying_var, value + strlen(""+search_chapter+""+punctuate+""), end_word) )
+	
+	return get_chapter_buf
+	
+#global
+
+*buf
+	celload "logo.png", 1
+
+*main
+	screen 0, 400, 50
+	color 50, 50, 50 : boxf
+	title "Cities Box Updater"
+	
+	now_DIR = dirinfo(0)
+	
+	font "Yu Gothic", 14, 1
+	
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+	color 255, 127, 39 : pos 60, 10 : mes "ファイル一覧リストをダウンロード中..."
+	
+	notesel datacenter_url
+	noteload "data/datacenter_url.txt"
+	
+	;delete "data/datacenter_url.txt"
+	
+	notesel about
+	noteload "data/about.txt"
+	noteget tmp_about, 2
+	split tmp_about, " : ", tmp, NOW_Release_number
+	NOW_Release_number = int(NOW_Release_number)
+
+	download datacenter_url, "Mac_update.txt", "data/Mac_update.txt"
+	
+	notesel NEW_file_list
+	noteload "data/Mac_update.txt"
+	NEW_file_list_max = notemax
+	
+	if instr(NEW_file_list, 0, "<!DOCTYPE html>") != -1 {
+		dialog "アップデートに失敗しました"
+		end
+	}
+	
+	notesel latest_version
+	noteload "data/Mac_latest_version.txt"
+	latest_version__Release_Number = get_chapter(latest_version, "Release Number", " : ", ";")
+	latest_version__Title = get_chapter(latest_version, "Title", " : ", ";")
+	latest_version__Version = get_chapter(latest_version, "Version", " : ", ";")
+	latest_version__URL = get_chapter(latest_version, "URL", " : ", ";")
+	
+	notesel NOW_file_list
+	noteload "data/file_list.dat"
+	NOW_file_list_max = notemax
+	
+	repeat NEW_file_list_max
+		notesel NEW_file_list
+		noteget tmp_NEW_file_list, cnt
+	
+		notesel NOW_file_list
+		noteget tmp_NOW_file_list, cnt
+	
+		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version
+		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
+		
+		if int(NEW_file_list_version) > int(NOW_Release_number) {
+			//ディレクトリが存在しなければ作成
+				getpath32_NEW_file_list_name = getpath(NEW_file_list_name, 32)
+				split getpath32_NEW_file_list_name, "\\", NEW_file_list_name_DIR
+				split_stat = stat
+					
+				#include "hspext.as"
+	
+				NEW_file_list_name_DIR_tmp = now_DIR
+	
+				repeat split_stat - 1
+					dirlist2 x, NEW_file_list_name_DIR(cnt), 1
+					if stat = 0 {
+						mkdir ""+NEW_file_list_name_DIR_tmp+"\\"+NEW_file_list_name_DIR(cnt)+"\\"
+					}
+						
+					NEW_file_list_name_DIR_tmp += "\\"+NEW_file_list_name_DIR(cnt)+"\\"
+					chdir NEW_file_list_name_DIR_tmp
+
+					wait 10
+				loop
+	
+			chdir now_DIR
+			
+			color 50, 50, 50 : boxf
+			color 34, 177, 76 : pos 60, 7 : mes "ダウンロード中 : \n"+NEW_file_list_name+""
+	
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+			exist NEW_file_list_name
+			if strsize != -1 {
+				delete NEW_file_list_name
+			}
+			
+			download latest_version__URL, NEW_file_list_name, NEW_file_list_name
+	
+			//文字化け解消
+			if instr(NEW_file_list_name, 0, ".hsp") != -1 or instr(NEW_file_list_name, 0, ".txt") != -1 or instr(NEW_file_list_name, 0, ".adat") != -1 {
+				notesel dl_tmp
+				noteload NEW_file_list_name
+	
+				nkfcnv new_dl_tmp, dl_tmp, "s", strlen(dl_tmp), strlen(dl_tmp) + 1024
+	
+				notesel new_dl_tmp
+				notesave NEW_file_list_name
+			}
+		}
+	
+		if int(NEW_file_list_version) = -1 {
+			color 50, 50, 50 : boxf
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
+			
+			color 255, 0, 0 : pos 60, 10 : mes "削除中 : "+NEW_file_list_name+""
+	
+			exist NEW_file_list_name
+			if strsize >= 0 {
+				delete NEW_file_list_name
+			}
+		}
+	
+		wait 1
+	loop
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+	color 163, 73, 164 : pos 60, 10 : mes "バージョン情報更新中..."
+	
+	notesel about
+	noteload "data/about.txt"
+	
+	repeat notemax
+		noteget about_tmp, cnt
+		
+		if instr(about_tmp, 0, "Release_number : ") != -1 {
+			noteadd "Release_number : "+latest_version__Release_Number+"", cnt, 1
+		}
+		if instr(about_tmp, 0, "Title : ") != -1 {
+			noteadd "Title : "+latest_version__Title+"", cnt, 1
+		}
+	
+		if instr(about_tmp, 0, "Version : ") != -1 {
+			noteadd "Version : "+latest_version__Version+"", cnt, 1
+		}
+	
+		wait 1
+	loop
+	
+	notesel about
+	notesave "data/about.txt"
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	
+	color 163, 73, 164 : pos 60, 10 : mes "一時ファイル削除中..."
+	
+	exist "data/datacenter_url.txt"
+		if strsize >= 0 : delete "data/datacenter_url.txt"
+	exist "data/Mac_latest_version.txt"
+		if strsize >= 0 : delete "data/Mac_latest_version.txt"
+	exist "data/Mac_update.txt"
+		if strsize >= 0 : delete "data/Mac_update.txt"
+	
+	font "Yu Gothic", 11, 1
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	color 0, 162, 232 : pos 60, 7 : mes "アップデートが完了しました。Cities Boxを再起動してください。\n（再起動するとこのアップデーターは自動で削除されます）"
+	
+	wait 500
+	
+	end
