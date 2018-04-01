@@ -88,7 +88,7 @@
 		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version
 		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
 		
-		if int(NEW_file_list_version) > int(NOW_Release_number) {
+		if int(NEW_file_list_version) > int(NOW_Release_number) or (NOW_Release_number = 1145141919 and int(NEW_file_list_version) >= 118) {
 			//ディレクトリが存在しなければ作成
 				getpath32_NEW_file_list_name = getpath(NEW_file_list_name, 32)
 				split getpath32_NEW_file_list_name, "\\", NEW_file_list_name_DIR
