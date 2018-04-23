@@ -147,6 +147,35 @@
 				delete NEW_file_list_name
 			}
 		}
+
+		if instr(NEW_file_list_version, 0, " : move_to : ") != -1 {
+			split NEW_file_list_version, " : ", tmp, tmp, move_path
+
+			//ディレクトリが存在しなければ作成
+				getpath32_move_path = getpath(move_path, 32)
+				split getpath32_move_path, "\\", move_path_DIR
+				split_stat = stat
+	
+				move_path_DIR_tmp = now_DIR
+	
+				repeat split_stat - 1
+					dirlist2 x, move_path_DIR(cnt), 1
+					if stat = 0 {
+						mkdir ""+move_path_DIR_tmp+"\\"+move_path_DIR(cnt)+"\\"
+					}
+						
+					move_path_DIR_tmp += "\\"+move_path_DIR(cnt)+"\\"
+					chdir move_path_DIR_tmp
+
+					wait 10
+				loop
+
+			exist NEW_file_list_name
+			if strsize != -1 {
+				bcopy NEW_file_list_name, move_path
+				delete NEW_file_list_name
+			}
+		}
 	
 		wait 1
 	loop
