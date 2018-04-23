@@ -35,7 +35,7 @@
 *main
 	screen 0, 400, 50
 	color 50, 50, 50 : boxf
-	title "Cities Box Updater"
+	title "Cities Box Updater r13"
 	
 	now_DIR = dirinfo(0)
 	
@@ -85,8 +85,10 @@
 		notesel NOW_file_list
 		noteget tmp_NOW_file_list, cnt
 	
-		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version
+		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version, move, move_path
 		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
+
+		move_path = strmid(move_path, 0, strlen(move_path)-1)
 		
 		if int(NEW_file_list_version) > int(NOW_Release_number) {
 			//ディレクトリが存在しなければ作成
@@ -148,9 +150,8 @@
 			}
 		}
 
-		if instr(NEW_file_list_version, 0, " : move_to : ") != -1 {
-			split NEW_file_list_version, " : ", tmp, tmp, move_path
-
+		exist move_path
+		if strsize = -1 and instr(move, 0, "move_to") != -1 {
 			color 50, 50, 50 : boxf
 			pos 5, 5 : gcopy 1, 0, 0, 50, 50
 			
@@ -174,6 +175,8 @@
 
 					wait 10
 				loop
+
+				chdir now_DIR
 
 			exist NEW_file_list_name
 			if strsize != -1 {
