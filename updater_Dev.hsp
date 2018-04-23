@@ -151,6 +151,11 @@
 		if instr(NEW_file_list_version, 0, " : move_to : ") != -1 {
 			split NEW_file_list_version, " : ", tmp, tmp, move_path
 
+			color 50, 50, 50 : boxf
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
+			
+			color 255, 0, 255 : pos 60, 10 : mes "移動中 : "+NEW_file_list_name+" → "+move_path+""
+
 			//ディレクトリが存在しなければ作成
 				getpath32_move_path = getpath(move_path, 32)
 				split getpath32_move_path, "\\", move_path_DIR
