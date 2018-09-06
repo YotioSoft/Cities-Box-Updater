@@ -2,6 +2,15 @@
 
 #pack "logo.png"
 
+#include "gdi32.as"
+#define ctype RGB(%1,%2,%3) (%1 | %2 << 8 | %3 << 16)
+oncmd gosub *ctlcoloredit, $133
+onexit *exit
+
+#uselib "user32"
+#func SetWindowLong "SetWindowLongA" int, int, int
+#func SetWindowPos "SetWindowPos" int, nullptr, nullptr, nullptr, nullptr, nullptr, int
+
 #module
 #deffunc download str url, str request, str dlname
 	netinit@
@@ -22,7 +31,9 @@
 	return
 	
 #defcfunc get_chapter var underlying_var, str search_chapter, str punctuate, str end_word
-	value = instr(underlying_var, 0, search_chapter)
+	value = instr(underlying_var, 0, search_chapter+punctuate)
+	if value = -1 : return ""
+	
 	get_chapter_buf = strmid ( underlying_var, value + strlen(""+search_chapter+""+punctuate+""), instr(underlying_var, value + strlen(""+search_chapter+""+punctuate+""), end_word) )
 	
 	return get_chapter_buf
@@ -33,17 +44,17 @@
 	celload "logo.png", 1
 
 *main
-	screen 0, 400, 50
+	screen 0, 600, 50
 	color 50, 50, 50 : boxf
-	title "Cities Box Updater"
+	title "Cities Box Updater r14"
 	
 	now_DIR = dirinfo(0)
 	
-	font "Yu Gothic", 14, 1
+	font "Meiryo", 12, 1
 	
-	pos 5, 5 : gcopy 1, 0, 0, 50, 50
+	pos 5, 5 : gcopy 1, 0, 0, 150, 50
 	
-	color 255, 127, 39 : pos 60, 10 : mes "ファイル一覧リストをダウンロード中..."
+	color 255, 127, 39 : pos 160, 10 : mes "ファイル一覧リストをダウンロード中..."
 	
 	notesel datacenter_url
 	noteload "data/datacenter_url.txt"
@@ -56,16 +67,17 @@
 	split tmp_about, " : ", tmp, NOW_Release_number
 	NOW_Release_number = int(NOW_Release_number)
 
-	download datacenter_url, "update.txt", "data/update.txt"
+	download datacenter_url, "release_files_log.dat", "data/release_files_log.dat"
 	
 	notesel NEW_file_list
-	noteload "data/update.txt"
+	noteload "data/release_files_log.dat"
 	NEW_file_list_max = notemax
 	
 	if instr(NEW_file_list, 0, "<!DOCTYPE html>") != -1 {
-		dialog "アップデートに失敗しました"
+		dialog "アップデートに失敗しました\n差分ファイルが取得できません。", 1, "Error 01"
 		end
 	}
+	
 	
 	notesel latest_version
 	noteload "data/latest_version.txt"
@@ -74,6 +86,292 @@
 	latest_version__Version = get_chapter(latest_version, "Version", " : ", ";")
 	latest_version__URL = get_chapter(latest_version, "URL", " : ", ";")
 	
+	//操作するファイルの一覧を取得
+	color 50, 50, 50 : boxf 160, 0, 400, 50
+	color 255, 127, 39 : pos 160, 10 : mes "変更するファイルの一覧を作成中..."
+	
+	sdim files_path, 512, 128
+	sdim files_mode, 2, 128
+	sdim files_destination_path, 512, 128
+	files_total = 0
+
+	exist "data/set_update_release_number.txt"
+	if strsize != -1 {
+		notesel set_update_release_number
+		noteload "data/set_update_release_number.txt"
+
+		if int(set_update_release_number) >= 100 {
+			latest_version__Release_Number = set_update_release_number
+
+			notesel NEW_file_list
+			repeat notemax
+				notesel NEW_file_list : noteget update_release_file_tmp, cnt
+				if instr(update_release_file_tmp, 0, "]"+set_update_release_number+"{") != -1 {
+					latest_version__Version = get_chapter(update_release_file_tmp, "[Ve", "r.", "]")
+				}
+			loop
+		}
+
+		delete "data/set_update_release_number.txt"
+	}
+
+	for checking_release_number, int(NOW_Release_number)+1, int(latest_version__Release_Number)+1, 1
+		update_release_file_list = get_chapter(NEW_file_list, "]"+str(checking_release_number), "{", "}")
+
+		if update_release_file_list = "" : _continue
+
+		if checking_release_number > int(latest_version__Release_Number)+1 : _break
+	
+		notesel update_release_file_list
+		repeat notemax
+			notesel update_release_file_list
+			noteget a_file_path_and_mode, cnt
+
+			split a_file_path_and_mode, "	", a_file_mode, a_file_path, a_file_destination_path
+			
+			; 新規作成 or 更新（A/M）
+			if a_file_mode = "A" or a_file_mode = "M" {
+				file_number = files_total
+				
+				repeat files_total
+					if files_path(cnt) = a_file_path {
+						file_number = cnt
+					}
+				loop
+
+				files_path(file_number) = a_file_path
+				files_mode(file_number) = a_file_mode
+				files_destination_path(file_number) = ""
+
+				if file_number = files_total : files_total ++
+			}
+
+			; 移動（R）
+			if instr(a_file_mode, 0, "R") != -1 {
+				file_number = files_total
+				
+				repeat files_total
+					if files_path(cnt) = a_file_path {
+						file_number = cnt
+					}
+				loop
+
+				files_path(file_number) = a_file_path
+				files_mode(file_number) = "R"
+				files_destination_path(file_number) = a_file_destination_path
+
+				if file_number = files_total : files_total ++
+			}
+	
+			; 削除（D）
+			if a_file_mode = "D" {
+				file_number = files_total
+				
+				repeat files_total
+					if files_path(cnt) = a_file_path {
+						file_number = cnt
+					}
+				loop
+
+				files_path(file_number) = a_file_path
+				files_mode(file_number) = a_file_mode
+				files_destination_path(file_number) = ""
+
+				if file_number = files_total : files_total ++
+			}
+		loop
+	next
+
+	//ファイルのダウンロード・削除
+	#include "hspext.as"
+	#include "kernel32.as"
+
+	objsize 600-160, 20 : tmp = ""
+	objmode 2, 0
+	pos 160, 25 : input tmp : input_stat = stat
+	hInput = objinfo(input_stat, 2)
+	CreateSolidBrush RGB(50, 50, 50)
+	hBrush = stat
+	SetWindowLong hInput, -20, $0
+	SetWindowPos hInput, $27
+
+	a_status_long = double(600/files_total)
+	
+	repeat files_total
+		if files_path(cnt) = "data/about.txt" {
+			continue
+		}
+
+		color 0, 162, 232
+		boxf 0, 47, a_status_long*(cnt+1), 50
+		
+		; 新規作成 or 更新（A/M）
+		if files_mode(cnt) = "A" or files_mode(cnt) = "M" {
+			color 50, 50, 50 : boxf 160, 0, 600, 46
+			color 34, 177, 76 : pos 160, 7 : mes "ダウンロード中 : "
+			objprm input_stat, ""+files_path(cnt)+""
+			
+			; ディレクトリが存在しなければ作成
+			getpath32_NEW_file_list_name = getpath(files_path(cnt), 32)
+			split getpath32_NEW_file_list_name, "/", NEW_file_list_name_DIR
+			split_stat = stat
+		
+			NEW_file_list_name_DIR_tmp = now_DIR
+		
+			repeat split_stat-1
+				dirlist2 x, NEW_file_list_name_DIR(cnt), 1
+				if stat = 0 {
+					mkdir NEW_file_list_name_DIR(cnt)
+				}
+							
+				NEW_file_list_name_DIR_tmp += "\\"+NEW_file_list_name_DIR(cnt)+"\\"
+				chdir NEW_file_list_name_DIR_tmp
+	
+				wait 10
+			loop
+		
+			chdir now_DIR
+	
+			; ファイルのダウンロード
+			exist files_path(cnt)
+			if strsize != -1 {
+				delete files_path(cnt)
+			}
+				
+			download latest_version__URL, files_path(cnt), files_path(cnt)
+				
+			; 文字化け解消
+			if instr(files_path(cnt), 0, ".hsp") != -1 or instr(files_path(cnt), 0, ".txt") != -1 or instr(files_path(cnt), 0, ".adat") != -1 {
+				notesel dl_tmp
+				noteload files_path(cnt)
+		
+				nkfcnv new_dl_tmp, dl_tmp, "s", strlen(dl_tmp), strlen(dl_tmp) + 1024
+		
+				notesel new_dl_tmp
+				notesave files_path(cnt)
+			}
+		}
+
+		; 移動（R）
+		if files_mode(cnt) = "R" {
+			color 50, 50, 50 : boxf 160, 0, 600, 46
+			pos 5, 5 : gcopy 1, 0, 0, 150, 50
+				
+			color 255, 242, 0 : pos 160, 7 : mes "移動中 : "
+			objprm input_stat, ""+files_path(cnt)+" -> "+files_destination_path(cnt)+""
+
+			; ディレクトリが存在しなければ作成
+			getpath32_NEW_file_list_name = getpath(files_destination_path(cnt), 32)
+			split getpath32_NEW_file_list_name, "/", NEW_file_list_name_DIR
+			split_stat = stat
+		
+			NEW_file_list_name_DIR_tmp = now_DIR
+		
+			repeat split_stat-1
+				dirlist2 x, NEW_file_list_name_DIR(cnt), 1
+				if stat = 0 {
+					mkdir NEW_file_list_name_DIR(cnt)
+				}
+							
+				NEW_file_list_name_DIR_tmp += "\\"+NEW_file_list_name_DIR(cnt)+"\\"
+				chdir NEW_file_list_name_DIR_tmp
+	
+				wait 10
+			loop
+
+			chdir now_DIR
+
+			exist files_path(cnt)
+			if strsize != -1 {
+				; ファイルの移動
+				bcopy files_path(cnt), files_destination_path(cnt)
+				delete files_path(cnt)
+
+				dirlist2 x, getpath(files_path(cnt), 32), 1
+				if stat = 0 {
+					RemoveDirectory getpath(files_path(cnt), 32)
+				}
+			} else {
+				; ファイルのダウンロード
+				download latest_version__URL, files_destination_path(cnt), files_destination_path(cnt)
+					
+				; 文字化け解消
+				if instr(files_destination_path(cnt), 0, ".hsp") != -1 or instr(files_destination_path(cnt), 0, ".txt") != -1 or instr(files_destination_path(cnt), 0, ".adat") != -1 {
+					notesel dl_tmp
+					noteload files_destination_path(cnt)
+			
+					nkfcnv new_dl_tmp, dl_tmp, "s", strlen(dl_tmp), strlen(dl_tmp) + 1024
+			
+					notesel new_dl_tmp
+					notesave files_destination_path(cnt)
+				}
+			}
+		}
+
+		; 削除（D）
+		if files_mode(cnt) = "D" {
+			color 50, 50, 50 : boxf 160, 0, 600, 46
+			pos 5, 5 : gcopy 1, 0, 0, 150, 50
+				
+			color 255, 0, 0 : pos 160, 7 : mes "削除中 : "
+			objprm input_stat, ""+files_path(cnt)+""
+		
+			exist files_path(cnt)
+			if strsize >= 0 {
+				delete files_path(cnt)
+			}
+		}
+
+	loop
+
+	clrobj
+
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 150, 50
+	
+	color 163, 73, 164 : pos 160, 10 : mes "バージョン情報更新中..."
+	
+	notesel about
+	noteload "data/about.txt"
+	
+	repeat notemax
+		noteget about_tmp, cnt
+		
+		if instr(about_tmp, 0, "Release_number : ") != -1 {
+			noteadd "Release_number : "+latest_version__Release_Number+"", cnt, 1
+		}
+		if instr(about_tmp, 0, "Title : ") != -1 {
+			noteadd "Title : "+latest_version__Title+"", cnt, 1
+		}
+	
+		if instr(about_tmp, 0, "Version : ") != -1 {
+			noteadd "Version : "+latest_version__Version+"", cnt, 1
+		}
+	
+		wait 1
+	loop
+	
+	notesel about
+	notesave "data/about.txt"
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 150, 50
+	
+	color 163, 73, 164 : pos 160, 10 : mes "一時ファイル削除中..."
+	/*
+	exist "data/latest_version.txt"
+		if strsize >= 0 : delete "data/latest_version.txt"
+*/
+	font "Meiryo", 11, 1
+	
+	color 50, 50, 50 : boxf
+	pos 5, 5 : gcopy 1, 0, 0, 150, 50
+	color 0, 162, 232 : pos 160, 7 : mes "アップデートが完了しました。Cities Boxを再起動してください。\n（再起動するとこのアップデーターは自動で削除されます）"
+	
+	wait 500
+	
+	end
+	/*
 	notesel NOW_file_list
 	noteload "data/file_list.dat"
 	NOW_file_list_max = notemax
@@ -85,8 +383,10 @@
 		notesel NOW_file_list
 		noteget tmp_NOW_file_list, cnt
 	
-		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version
+		split tmp_NEW_file_list, " : ", NEW_file_list_name, NEW_file_list_version, move, move_path
 		split tmp_NOW_file_list, " : ", NOW_file_list_name, NOW_file_list_version
+
+		move_path = strmid(move_path, 0, strlen(move_path)-1)
 		
 		if int(NEW_file_list_version) > int(NOW_Release_number) or (NOW_Release_number = 1145141919 and int(NEW_file_list_version) >= 118) {
 			//ディレクトリが存在しなければ作成
@@ -147,6 +447,41 @@
 				delete NEW_file_list_name
 			}
 		}
+
+		exist move_path
+		if strsize = -1 and instr(move, 0, "move_to") != -1 {
+			color 50, 50, 50 : boxf
+			pos 5, 5 : gcopy 1, 0, 0, 50, 50
+			
+			color 255, 0, 255 : pos 60, 10 : mes "移動中 : "+NEW_file_list_name+" → "+move_path+""
+
+			//ディレクトリが存在しなければ作成
+				getpath32_move_path = getpath(move_path, 32)
+				split getpath32_move_path, "\\", move_path_DIR
+				split_stat = stat
+	
+				move_path_DIR_tmp = now_DIR
+	
+				repeat split_stat - 1
+					dirlist2 x, move_path_DIR(cnt), 1
+					if stat = 0 {
+						mkdir ""+move_path_DIR_tmp+"\\"+move_path_DIR(cnt)+"\\"
+					}
+						
+					move_path_DIR_tmp += "\\"+move_path_DIR(cnt)+"\\"
+					chdir move_path_DIR_tmp
+
+					wait 10
+				loop
+
+				chdir now_DIR
+
+			exist NEW_file_list_name
+			if strsize != -1 {
+				bcopy NEW_file_list_name, move_path
+				delete NEW_file_list_name
+			}
+		}
 	
 		wait 1
 	loop
@@ -191,7 +526,7 @@
 	exist "data/update.txt"
 		if strsize >= 0 : delete "data/update.txt"
 	
-	font "Yu Gothic", 11, 1
+	font "Meiryo", 11, 1
 	
 	color 50, 50, 50 : boxf
 	pos 5, 5 : gcopy 1, 0, 0, 50, 50
@@ -199,4 +534,19 @@
 	
 	wait 500
 	
+	end
+*/
+
+*ctlcoloredit
+	if hInput = lparam {
+		SetTextColor wparam, RGB(255, 255, 255)
+		SetBkColor wparam, RGB(50, 50, 50)
+		return hBrush
+	}
+
+	return
+
+*exit
+	DeleteObject hBrush
+
 	end
