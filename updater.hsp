@@ -1,7 +1,5 @@
 #include "hspinet.as"
 
-#pack "logo.png"
-
 #include "gdi32.as"
 #define ctype RGB(%1,%2,%3) (%1 | %2 << 8 | %3 << 16)
 oncmd gosub *ctlcoloredit, $133
@@ -39,6 +37,8 @@ onexit *exit
 	return get_chapter_buf
 	
 #global
+
+#pack "logo.png"
 
 *buf
 	celload "logo.png", 1
@@ -92,7 +92,7 @@ onexit *exit
 	
 	sdim files_path, 512, 128
 	sdim files_mode, 2, 128
-	sdim files_destination_path, 512, 128
+	sdim files_destination_path, 512, 512
 	files_total = 0
 
 	exist "data/set_update_release_number.txt"
